@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Canvas Grid Animation</title>
+    <style>
+        html, body {
+            margin: 0;
+            overflow: hidden;
+            background-color: black;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+<canvas id="gridCanvas"></canvas>
+
+<script>
+class Tile {
+    static RGBcolor = `rgba(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255},`;
+    constructor(x, y, size) {
+        this.random = Math.random();
+        this.x = x;
+        this.y = y;
+        this.size = size;
+        this.color = "black";
+        this.isActive = true;
+        this.lastUpdate = 0;
+        this.alpha = this.random; 
+        this.fadeIn = this.random < 0.50; 
+        this.speed = this.random * 0.0019; 
+    }
+
+    update(time) {
+        if (this.fadeIn) {
+            this.alpha += this.speed;
+            if (this.alpha >= 1) {
+                this.alpha = 1;
+                this.fadeIn = false;
+            }
+        } else {
+            this.alpha -= this.speed * 1.5;
+            if (this.alpha <= 0) {
+                this.alpha = 0;
+                this.fadeIn = true;
+            }
+        }
+    }
+
+    draw(ctx) {
+        ctx.fillStyle = Tile.RGBcolor + this.alpha + ')';
+        ctx.fillRect(this.x, this.y, this.size, this.size);
+    }
+}
+
+const canvas = document.getElementById("gridCanvas");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const tileSize = 20;
+const columns = Math.floor(canvas.width / tileSize);
+const rows = Math.floor(canvas.height / tileSize);
+
+let tiles = [];
+for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < columns; col++) {
+        tiles.push(new Tile(col * tileSize, row * tileSize, tileSize));
+    }
+}
+let lastTime = 0;
+const fps = 30; 
+function animate(time) {
+    if (time - lastTime > 1000 / fps) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    tiles.forEach(tile => {
+        tile.update(time);
+        tile.draw(ctx);
+        
+    }
+);
+lastTime = time;}
+    requestAnimationFrame(animate);
+}
+
+requestAnimationFrame(animate);
+
+</script>
+</body>
+</html>

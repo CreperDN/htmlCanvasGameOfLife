@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="style.css">
+    <style>
+        canvas {
+            border: 1px solid black;
+            display: block;
+            margin: auto;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div id="printBlock"></div>
+
+    <script type="text/javascript">
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let isRunning = true; 
+        let intervalId; 
+        const squareSize = 40; 
+        const cols = Math.floor(window.innerWidth / squareSize)-3;
+        const rows = Math.floor(window.innerHeight / squareSize)-3;
+        const squares = [];
+        const framesPerSecond = 24; 
+        const frameDuration = 1000 / framesPerSecond; 
+        let lastFrameTime = 0; 
+
+        class Square {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.isAlive = Math.random() < 0.5; 
+                this.neighborCount = 0;
+            }
+
+            draw() {
+                ctx.fillStyle = this.isAlive ? 'black' : 'white';
+                ctx.fillRect(this.x * squareSize, this.y * squareSize, squareSize, squareSize);
+                ctx.strokeRect(this.x * squareSize, this.y * squareSize, squareSize, squareSize);
+            }
+
+            toggle() {
+                this.isAlive = !this.isAlive;
+            }
+        }
+
+        function createField() {
+            for (let y = 0; y < rows; y++) {
+                for (let x = 0; x < cols; x++) {
+                    squares.push(new Square(x, y));
+                }
+            }
+            startFrameControl();
+            draw();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            squares.forEach(square => square.draw());
+        }
+
+        function updateNeighbors() {
+            squares.forEach(square => {
+                square.neighborCount = countNeighbors(square);
+            });
+        }
+
+        function countNeighbors(square) {
+            let count = 0;
+            const directions = [-1, 0, 1];
+            directions.forEach(dx => {
+                directions.forEach(dy => {
+                    if (dx === 0 && dy === 0) return; 
+                    const neighborX = square.x + dx;
+                    const neighborY = square.y + dy;
+                    if (neighborX >= 0 && neighborX < cols && neighborY >= 0 && neighborY < rows) {
+                        const neighbor = squares.find(s => s.x === neighborX && s.y === neighborY);
+                        if (neighbor && neighbor.isAlive) {
+                            count++;
+                        }
+                    }
+                });
+            });
+            return count;
+        }
+
+        function do_timer0() {
+            squares.forEach(square => {
+                if (square.isAlive) {
+                    square.isAlive = square.neighborCount === 2 || square.neighborCount === 3;
+                } else {
+                    square.isAlive = square.neighborCount === 3;
+                }
+            });
+        }
+
+        function startFrameControl() {
+            intervalId = setInterval(() => {
+                const currentTime = Date.now();
+                if (currentTime - lastFrameTime >= frameDuration) {
+                    lastFrameTime = currentTime;
+                    if (isRunning) {
+                        updateNeighbors();
+                        do_timer0();
+                        draw();
+                    }
+                }
+            }, 100);
+        }
+
+        function toggleRunning() {
+            isRunning = !isRunning;
+        }
+
+        document.addEventListener("visibilitychange", function() {
+            if (document.visibilityState === 'hidden') {
+                isRunning = false; 
+            } else {
+                if (isRunning) {
+                    startFrameControl(); 
+                }
+            }
+        });
+
+        canvas.addEventListener('click', (event) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor((event.clientX - rect.left) / squareSize);
+            const y = Math.floor((event.clientY - rect.top) / squareSize);
+            const square = squares.find(s => s.x === x && s.y === y);
+            if (square) {
+                square.toggle();
+                draw();
+            }
+        });
+
+        window.onload = () => {
+            canvas.width = cols * squareSize;
+            canvas.height = rows * squareSize;
+            createField();
+        };
+
+        window.addEventListener("keydown", function(event) {
+            if (event.code === "Space") { 
+                toggleRunning();
+                event.preventDefault(); 
+            }
+        });
+    </script>
+</body>
+</html>
